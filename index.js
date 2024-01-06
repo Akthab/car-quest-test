@@ -8,14 +8,14 @@ const Person = require('./models/personModel');
 // const dbURI = 'mongodb://localhost:27017/your-database-name';
 
 // Connect to MongoDB using Mongoose
-// mongoose.connect(process.env.MONGODB_URI);
+mongoose.connect(process.env.MONGODB_URI);
 
 // Check MongoDB connection
-// const db = mongoose.connection;
-// db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-// db.once('open', () => {
-// 	console.log('Connected to MongoDB');
-// });
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => {
+	console.log('Connected to MongoDB');
+});
 
 app.use(express.json());
 
