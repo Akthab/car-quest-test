@@ -3,13 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
 const User_model_1 = __importDefault(require("./../models/User.model"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const http_status_codes_1 = require("http-status-codes");
 const response_service_1 = __importDefault(require("../services/response.service"));
 const response_1 = require("../constants/response");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const userResponse_1 = require("../model/userResponse");
 /** POST: http://localhost:8080/api/register
  * @param: {
   "firstName" : "Hello",
@@ -95,3 +96,28 @@ async function login(req, res) {
     }
 }
 exports.login = login;
+/** POST: http://localhost:8080/api/getUserDetailsByHeader
+ * @param: {
+ * jwtToken: eyzxcvbnbvcxvbnmbnmmnbvbnmnbvbnmnbv
+}
+*/
+async function getUserDetailsByHeader(req, res) {
+    try {
+        const user = req.user;
+        if (user != null) {
+            const userDetailsResponse = new userResponse_1.UserDetailsResponse(user.id, user.firstName, user.lastName, user.email, user.phoneNumber);
+            return res
+                .status(http_status_codes_1.StatusCodes.OK)
+                .send(response_service_1.default.respond(response_1.ResponseCode.FETCH_USER_DETAILS_SUCCESS, response_1.ResponseMessage.GET_USER_DETAILS_SUCCESS, userDetailsResponse));
+        }
+        else {
+            return res
+                .status(http_status_codes_1.StatusCodes.UNAUTHORIZED)
+                .send(response_service_1.default.respond(response_1.ResponseCode.USER_ERROR, response_1.ResponseMessage.NO_USER));
+        }
+    }
+    catch (error) {
+        res.json({ status: 'error', error: 'invalid token' });
+    }
+}
+exports.getUserDetailsByHeader = getUserDetailsByHeader;

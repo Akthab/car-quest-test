@@ -22,11 +22,18 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const requireAuth_js_1 = __importDefault(require("../middleware/requireAuth.js"));
 const router = (0, express_1.Router)();
 const controller = __importStar(require("../controllers/appController"));
 // router.use(requireAuth);
 router.route('/register').post(controller.register); // register user
 router.route('/login').post(controller.login); // login user
+router
+    .route('/getUserDetailsByHeader')
+    .get(requireAuth_js_1.default, controller.getUserDetailsByHeader); // get user details by header
 exports.default = router;

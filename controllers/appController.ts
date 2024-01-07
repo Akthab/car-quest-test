@@ -4,6 +4,7 @@ import { StatusCodes } from 'http-status-codes';
 import ResponseService from '../services/response.service';
 import { ResponseMessage, ResponseCode } from '../constants/response';
 import jwt from 'jsonwebtoken';
+import { UserDetailsResponse } from '../model/userResponse';
 
 /** POST: http://localhost:8080/api/register 
  * @param: {
@@ -121,5 +122,47 @@ export async function login(req, res) {
 					ResponseMessage.INTERNAL_SERVER_ERROR
 				)
 			);
+	}
+}
+
+/** POST: http://localhost:8080/api/getUserDetailsByHeader 
+ * @param: {
+ * jwtToken: eyzxcvbnbvcxvbnmbnmmnbvbnmnbvbnmnbv
+}
+*/
+export async function getUserDetailsByHeader(req, res) {
+	try {
+		const user = req.user;
+
+		if (user != null) {
+			const userDetailsResponse = new UserDetailsResponse(
+				user.id,
+				user.firstName,
+				user.lastName,
+				user.email,
+				user.phoneNumber
+			);
+
+			return res
+				.status(StatusCodes.OK)
+				.send(
+					ResponseService.respond(
+						ResponseCode.FETCH_USER_DETAILS_SUCCESS,
+						ResponseMessage.GET_USER_DETAILS_SUCCESS,
+						userDetailsResponse
+					)
+				);
+		} else {
+			return res
+				.status(StatusCodes.UNAUTHORIZED)
+				.send(
+					ResponseService.respond(
+						ResponseCode.USER_ERROR,
+						ResponseMessage.NO_USER
+					)
+				);
+		}
+	} catch (error) {
+		res.json({ status: 'error', error: 'invalid token' });
 	}
 }
