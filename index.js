@@ -2,41 +2,40 @@ const express = require('express');
 require('dotenv').config();
 const app = express();
 const port = 3000;
+const mongoose = require('mongoose');
+const Person = require('./models/personModel');
 const MongoClient = require('mongodb').MongoClient;
 
-// Connect to MongoDB directly
-MongoClient.connect(process.env.MONGODB_URI, (err, client) => {
-	if (err) throw err;
+// Connect to MongoDB using Mongoose
+mongoose.connect(process.env.MONGODB_URI);
 
-	const db = client.db(); // Use your database name
-
+// Check MongoDB connection
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => {
 	console.log('Connected to MongoDB');
-
-	// Define the Person collection manually
-	const personCollection = db.collection('persons');
-
-	// Route to save a person
-	app.post('/persons', async (req, res) => {
-		try {
-			const { name, age } = req.body;
-
-			// Create a new document
-			const newPerson = { name, age };
-
-			// Insert the person into the collection
-			const result = await personCollection.insertOne(newPerson);
-
-			res.status(201).json(result.insertedId); // Send the inserted document's _id
-		} catch (error) {
-			console.error(error);
-			res.status(500).json({ error: 'Internal Server Error' });
-		}
-	});
-
-	// Other routes and app configuration...
 });
 
-// ... rest of your app code ...
+app.use(express.json());
+// Route to save a person
+app.post('/persons', async (req, res) => {
+	try {
+		const { name, age } = req.body;
+		// Create a new document
+
+		// Create a new person instance
+		const newPerson = new Person({ name, age });
+
+		// Save the person to the database
+		const savedPerson = await newPerson.save();
+
+		res.status(201).json(savedPerson);
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: 'Internal Server Error' });
+	}
+	// Other routes and app configuration...
+});
 
 app.get('/hello', (req, res) => {
 	res.send('Hello, Express!');
