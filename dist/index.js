@@ -9,8 +9,6 @@ const app = express();
 const port = 3000;
 const mongoose = require('mongoose');
 const Person_model_1 = __importDefault(require("./models/Person.model"));
-// const Person = require('./models/Person.model');
-const MongoClient = require('mongodb').MongoClient;
 // Connect to MongoDB using Mongoose
 mongoose.connect(process.env.MONGODB_URI);
 // Check MongoDB connection
