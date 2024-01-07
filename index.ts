@@ -3,8 +3,7 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 const mongoose = require('mongoose');
-const Person = require('./models/personModel');
-const MongoClient = require('mongodb').MongoClient;
+import Person from './models/Person.model';
 
 // Connect to MongoDB using Mongoose
 mongoose.connect(process.env.MONGODB_URI);
