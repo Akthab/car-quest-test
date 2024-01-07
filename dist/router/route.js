@@ -28,4 +28,5 @@ const router = (0, express_1.Router)();
 const controller = __importStar(require("../controllers/appController"));
 // router.use(requireAuth);
 router.route('/register').post(controller.register); // register user
+router.route('/login').post(controller.login); // login user
 exports.default = router;

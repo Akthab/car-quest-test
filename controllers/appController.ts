@@ -1,5 +1,9 @@
 import UserModel from './../models/User.model';
 import bcrypt from 'bcryptjs';
+import { StatusCodes } from 'http-status-codes';
+import ResponseService from '../services/response.service';
+import { ResponseMessage, ResponseCode } from '../constants/response';
+import jwt from 'jsonwebtoken';
 
 /** POST: http://localhost:8080/api/register 
  * @param: {
@@ -37,5 +41,85 @@ export async function register(req, res) {
 			console.error('Registration error:', err);
 			res.send({ status: 'error', error: 'Internal Server Error' });
 		}
+	}
+}
+
+/** POST: http://localhost:8080/api/login 
+ * @param: {
+  "email" : "hello@gmail.com",
+  "password" : "name+1234"
+}
+*/
+export async function login(req, res) {
+	try {
+		const user = await UserModel.findOne({
+			email: req.body.email,
+		});
+
+		if (!user) {
+			return res
+				.status(StatusCodes.UNAUTHORIZED)
+				.send(
+					ResponseService.respond(
+						ResponseCode.USER_ERROR,
+						ResponseMessage.NO_USER
+					)
+				);
+		}
+
+		if (typeof req.body.password === 'undefined' || req.body.password === '') {
+			// Password is empty or undefined
+			return res
+				.status(StatusCodes.NOT_ACCEPTABLE)
+				.send(
+					ResponseService.respond(
+						ResponseCode.USER_ERROR,
+						ResponseMessage.NO_PASSWORD
+					)
+				);
+		}
+
+		const isPasswordValid = await bcrypt.compare(
+			req.body.password,
+			user.password
+		);
+
+		if (isPasswordValid) {
+			const token = jwt.sign(
+				{
+					name: user.firstName,
+					email: user.email,
+				},
+				process.env.JWT_SECRET_KEY
+			);
+
+			return res
+				.status(StatusCodes.OK)
+				.send(
+					ResponseService.respond(
+						ResponseCode.AUTH_SUCCESS,
+						ResponseMessage.LOGIN_SUCCESS,
+						token
+					)
+				);
+		} else {
+			return res
+				.status(StatusCodes.UNAUTHORIZED)
+				.send(
+					ResponseService.respond(
+						ResponseCode.USER_ERROR,
+						ResponseMessage.INVALID_CREDENTIALS
+					)
+				);
+		}
+	} catch (error) {
+		return res
+			.status(StatusCodes.BAD_REQUEST)
+			.send(
+				ResponseService.respond(
+					ResponseCode.SERVER_ERROR,
+					ResponseMessage.INTERNAL_SERVER_ERROR
+				)
+			);
 	}
 }
