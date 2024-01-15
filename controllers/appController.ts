@@ -177,38 +177,26 @@ export async function getUserDetailsByHeader(req, res) {
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-const s3 = new S3({
-	region: process.env.AWS_REGION,
-	credentials: {
-		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-	},
-});
-
-//function to upload image to AWS S3 bucket
-async function uploadImageNew(imageFile) {
+async function uploadImage(imageFile) {
 	const file = imageFile;
 	const fileBuffer = Buffer.from(file.buffer);
 
-	const uploadParams = {
+	const client = new S3Client({ region: process.env.AWS_REGION });
+	const imageKey = uuidv4();
+	const uploadCommand = new PutObjectCommand({
 		Bucket: process.env.AWS_S3_BUCKET,
-		Key: uuidv4(),
+		Key: imageKey,
 		Body: fileBuffer,
-		ContentType: file.mimetype,
-	};
+	});
 
 	try {
-		const data = await new Upload({
-			client: s3,
-			params: uploadParams,
-		}).done();
+		await client.send(uploadCommand);
 
-		const uploadImageUrl = data['Location'];
+		const imageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
 
-		return uploadImageUrl;
-	} catch (err) {
-		console.log('In the error');
-		console.log('Error', err);
+		return imageUrl;
+	} catch (error) {
+		console.log(error);
 	}
 }
 
@@ -225,25 +213,15 @@ async function uploadImageNew(imageFile) {
 
 export async function addPost(req, res) {
 	try {
-		console.log('Process ENV  ', process.env.AWS_S3_BUCKET);
-
-		console.log('Type of access key id', process.env.AWS_ACCESS_KEY_ID);
-
-		console.log(
-			'Type of secret access key  ',
-			process.env.AWS_SECRET_ACCESS_KEY
-		);
-
 		const uploadMiddleware = upload.single('image');
 
-		uploadMiddleware(req, res, async (err) => {
+		await uploadMiddleware(req, res, async (err) => {
 			let postImageUrl = null;
-
 			console.log(req.file);
 
 			if (req.file) {
 				console.log('Has a file');
-				postImageUrl = await uploadImageNew(req.file);
+				postImageUrl = await uploadImage(req.file);
 			}
 
 			const post = await PostModel.create({
@@ -256,70 +234,8 @@ export async function addPost(req, res) {
 				postImageUrl: postImageUrl,
 			});
 		});
-
 		res.json({ message: 'Post creation successful' });
 	} catch (error) {
 		res.status(500).json({ error: 'Internal server error' });
 	}
-}
-
-// export async function newAddPost(req, res) {
-// 	const uploadMiddleware = upload.single('image');
-
-// 	uploadMiddleware(req, res, async (err) => {
-// 		// let postImageUrl = null;
-
-// 		if (req.file) {
-// 			console.log('Has a file');
-// 			const file = req.file;
-// 			const fileBuffer = Buffer.from(file.buffer);
-
-// 			const client = new S3Client({ region: process.env.AWS_REGION });
-// 			const uploadCommand = new PutObjectCommand({
-// 				Bucket: process.env.AWS_S3_BUCKET,
-// 				Key: uuidv4(),
-// 				Body: fileBuffer,
-// 			});
-
-// 			const response = await client.send(uploadCommand);
-// 			return Response.json(response);
-// 		}
-// 	});
-// }
-
-export async function newAddPost(req, res) {
-	const uploadMiddleware = upload.single('image');
-
-	await uploadMiddleware(req, res, async (err) => {
-		if (err) {
-			// Handle errors here
-			return res.status(500).json({ message: 'Error uploading image' });
-		}
-
-		if (req.file) {
-			const file = req.file;
-			const fileBuffer = Buffer.from(file.buffer);
-
-			const client = new S3Client({ region: process.env.AWS_REGION });
-			const uploadCommand = new PutObjectCommand({
-				Bucket: process.env.AWS_S3_BUCKET,
-				Key: uuidv4(),
-				Body: fileBuffer,
-			});
-
-			try {
-				const response = await client.send(uploadCommand);
-				return res.json({
-					message: 'Image uploaded successfully!',
-					// imageUrl: response.Location,
-				});
-			} catch (error) {
-				// Handle S3-specific errors here
-				return res.status(500).json({ message: 'Error uploading image to S3' });
-			}
-		} else {
-			// Handle missing file case
-			return res.status(400).json({ message: 'No image file provided' });
-		}
-	});
 }

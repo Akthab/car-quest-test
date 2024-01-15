@@ -36,6 +36,6 @@ router.route('/login').post(controller.login); // login user
 router
     .route('/getUserDetailsByHeader')
     .get(requireAuth_js_1.default, controller.getUserDetailsByHeader); // get user details by header
-router.route('/addPost').post(requireAuth_js_1.default, controller.addPost); // add post
-router.route('/newAddPost').post(controller.newAddPost);
+// router.route('/addPost').post(requireAuth, controller.addPost); // add post
+router.route('/addPost').post(requireAuth_js_1.default, controller.addPost);
 exports.default = router;
