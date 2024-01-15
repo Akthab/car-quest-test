@@ -8,8 +8,10 @@ import jwt from 'jsonwebtoken';
 import { UserDetailsResponse } from '../model/userResponse';
 import multer from 'multer';
 import { S3 } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import { Upload } from '@aws-sdk/lib-storage';
+import { createReadStream } from 'fs';
 
 /** POST: http://localhost:8080/api/register 
  * @param: {
@@ -259,4 +261,65 @@ export async function addPost(req, res) {
 	} catch (error) {
 		res.status(500).json({ error: 'Internal server error' });
 	}
+}
+
+// export async function newAddPost(req, res) {
+// 	const uploadMiddleware = upload.single('image');
+
+// 	uploadMiddleware(req, res, async (err) => {
+// 		// let postImageUrl = null;
+
+// 		if (req.file) {
+// 			console.log('Has a file');
+// 			const file = req.file;
+// 			const fileBuffer = Buffer.from(file.buffer);
+
+// 			const client = new S3Client({ region: process.env.AWS_REGION });
+// 			const uploadCommand = new PutObjectCommand({
+// 				Bucket: process.env.AWS_S3_BUCKET,
+// 				Key: uuidv4(),
+// 				Body: fileBuffer,
+// 			});
+
+// 			const response = await client.send(uploadCommand);
+// 			return Response.json(response);
+// 		}
+// 	});
+// }
+
+export async function newAddPost(req, res) {
+	const uploadMiddleware = upload.single('image');
+
+	await uploadMiddleware(req, res, async (err) => {
+		if (err) {
+			// Handle errors here
+			return res.status(500).json({ message: 'Error uploading image' });
+		}
+
+		if (req.file) {
+			const file = req.file;
+			const fileBuffer = Buffer.from(file.buffer);
+
+			const client = new S3Client({ region: process.env.AWS_REGION });
+			const uploadCommand = new PutObjectCommand({
+				Bucket: process.env.AWS_S3_BUCKET,
+				Key: uuidv4(),
+				Body: fileBuffer,
+			});
+
+			try {
+				const response = await client.send(uploadCommand);
+				return res.json({
+					message: 'Image uploaded successfully!',
+					// imageUrl: response.Location,
+				});
+			} catch (error) {
+				// Handle S3-specific errors here
+				return res.status(500).json({ message: 'Error uploading image to S3' });
+			}
+		} else {
+			// Handle missing file case
+			return res.status(400).json({ message: 'No image file provided' });
+		}
+	});
 }
