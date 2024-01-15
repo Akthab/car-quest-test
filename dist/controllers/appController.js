@@ -3,14 +3,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
+exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
 const User_model_1 = __importDefault(require("./../models/User.model"));
+const Post_model_js_1 = __importDefault(require("../models/Post.model.js"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const http_status_codes_1 = require("http-status-codes");
 const response_service_1 = __importDefault(require("../services/response.service"));
 const response_1 = require("../constants/response");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userResponse_1 = require("../model/userResponse");
+const multer_1 = __importDefault(require("multer"));
+const client_s3_1 = require("@aws-sdk/client-s3");
+const uuid_1 = require("uuid");
+const lib_storage_1 = require("@aws-sdk/lib-storage");
 /** POST: http://localhost:8080/api/register
  * @param: {
   "firstName" : "Hello",
@@ -121,3 +126,75 @@ async function getUserDetailsByHeader(req, res) {
     }
 }
 exports.getUserDetailsByHeader = getUserDetailsByHeader;
+const storage = multer_1.default.memoryStorage();
+const upload = (0, multer_1.default)({ storage: storage });
+const s3 = new client_s3_1.S3({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+});
+//function to upload image to AWS S3 bucket
+async function uploadImageNew(imageFile) {
+    const file = imageFile;
+    const fileBuffer = Buffer.from(file.buffer);
+    const uploadParams = {
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: (0, uuid_1.v4)(),
+        Body: fileBuffer,
+        ContentType: file.mimetype,
+    };
+    try {
+        const data = await new lib_storage_1.Upload({
+            client: s3,
+            params: uploadParams,
+        }).done();
+        const uploadImageUrl = data['Location'];
+        return uploadImageUrl;
+    }
+    catch (err) {
+        console.log('In the error');
+        console.log('Error', err);
+    }
+}
+/** POST: http://localhost:8080/api/addPost
+ * @param: {
+  "postTitle" : "Misfiring in the engine",
+  "postDescription": "The engine keeps misfiring when the rpm is above 2000rpm",
+  "postCarMake": "Toyota",
+  "postCarModel": "Camry",
+  "postCarType": "Sedan",
+  "postImageUrl": "https/xyzzz/aabcccc/ghjjjj"
+}
+*/
+async function addPost(req, res) {
+    try {
+        console.log('Process ENV  ', process.env.AWS_S3_BUCKET);
+        console.log('Type of access key id', process.env.AWS_ACCESS_KEY_ID);
+        console.log('Type of secret access key  ', process.env.AWS_SECRET_ACCESS_KEY);
+        const uploadMiddleware = upload.single('image');
+        uploadMiddleware(req, res, async (err) => {
+            let postImageUrl = null;
+            console.log(req.file);
+            if (req.file) {
+                console.log('Has a file');
+                postImageUrl = await uploadImageNew(req.file);
+            }
+            const post = await Post_model_js_1.default.create({
+                postTitle: req.body.postTitle,
+                postDescription: req.body.postDescription,
+                postCarMake: req.body.postCarMake,
+                postCarYear: req.body.postCarYear,
+                postCarType: req.body.postCarType,
+                postCarFuelType: req.body.postCarFuelType,
+                postImageUrl: postImageUrl,
+            });
+        });
+        res.json({ message: 'Post creation successful' });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+exports.addPost = addPost;

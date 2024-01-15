@@ -2,11 +2,12 @@ import express from 'express';
 import mongoose from 'mongoose';
 import router from './router/route';
 
-const port = 3000;
+const port = 8080;
 
 require('dotenv').config();
 const app = express();
 
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB using Mongoose
@@ -18,8 +19,6 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 db.once('open', () => {
 	console.log('Connected to MongoDB');
 });
-
-app.use(express.json());
 
 app.use('/api', router);
 

@@ -1,10 +1,15 @@
 import UserModel from './../models/User.model';
+import PostModel from '../models/Post.model.js';
 import bcrypt from 'bcryptjs';
 import { StatusCodes } from 'http-status-codes';
 import ResponseService from '../services/response.service';
 import { ResponseMessage, ResponseCode } from '../constants/response';
 import jwt from 'jsonwebtoken';
 import { UserDetailsResponse } from '../model/userResponse';
+import multer from 'multer';
+import { S3 } from '@aws-sdk/client-s3';
+import { v4 as uuidv4 } from 'uuid';
+import { Upload } from '@aws-sdk/lib-storage';
 
 /** POST: http://localhost:8080/api/register 
  * @param: {
@@ -164,5 +169,94 @@ export async function getUserDetailsByHeader(req, res) {
 		}
 	} catch (error) {
 		res.json({ status: 'error', error: 'invalid token' });
+	}
+}
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+const s3 = new S3({
+	region: process.env.AWS_REGION,
+	credentials: {
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+	},
+});
+
+//function to upload image to AWS S3 bucket
+async function uploadImageNew(imageFile) {
+	const file = imageFile;
+	const fileBuffer = Buffer.from(file.buffer);
+
+	const uploadParams = {
+		Bucket: process.env.AWS_S3_BUCKET,
+		Key: uuidv4(),
+		Body: fileBuffer,
+		ContentType: file.mimetype,
+	};
+
+	try {
+		const data = await new Upload({
+			client: s3,
+			params: uploadParams,
+		}).done();
+
+		const uploadImageUrl = data['Location'];
+
+		return uploadImageUrl;
+	} catch (err) {
+		console.log('In the error');
+		console.log('Error', err);
+	}
+}
+
+/** POST: http://localhost:8080/api/addPost 
+ * @param: {
+  "postTitle" : "Misfiring in the engine",
+  "postDescription": "The engine keeps misfiring when the rpm is above 2000rpm",
+  "postCarMake": "Toyota",
+  "postCarModel": "Camry",
+  "postCarType": "Sedan",
+  "postImageUrl": "https/xyzzz/aabcccc/ghjjjj"
+}
+*/
+
+export async function addPost(req, res) {
+	try {
+		console.log('Process ENV  ', process.env.AWS_S3_BUCKET);
+
+		console.log('Type of access key id', process.env.AWS_ACCESS_KEY_ID);
+
+		console.log(
+			'Type of secret access key  ',
+			process.env.AWS_SECRET_ACCESS_KEY
+		);
+
+		const uploadMiddleware = upload.single('image');
+
+		uploadMiddleware(req, res, async (err) => {
+			let postImageUrl = null;
+
+			console.log(req.file);
+
+			if (req.file) {
+				console.log('Has a file');
+				postImageUrl = await uploadImageNew(req.file);
+			}
+
+			const post = await PostModel.create({
+				postTitle: req.body.postTitle,
+				postDescription: req.body.postDescription,
+				postCarMake: req.body.postCarMake,
+				postCarYear: req.body.postCarYear,
+				postCarType: req.body.postCarType,
+				postCarFuelType: req.body.postCarFuelType,
+				postImageUrl: postImageUrl,
+			});
+		});
+
+		res.json({ message: 'Post creation successful' });
+	} catch (error) {
+		res.status(500).json({ error: 'Internal server error' });
 	}
 }
