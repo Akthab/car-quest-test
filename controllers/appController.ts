@@ -239,3 +239,28 @@ export async function addPost(req, res) {
 		res.status(500).json({ error: 'Internal server error' });
 	}
 }
+
+export async function newAddPost(req, res) {
+	const uploadMiddleware = upload.single('image');
+
+	uploadMiddleware(req, res, async (err) => {
+		// let postImageUrl = null;
+
+		if (req.file) {
+			console.log('Has a file');
+			const file = req.file;
+			const fileBuffer = Buffer.from(file.buffer);
+
+			const client = new S3Client({ region: process.env.AWS_REGION });
+			const uploadCommand = new PutObjectCommand({
+				Bucket: process.env.AWS_S3_BUCKET,
+				Key: uuidv4(),
+				Body: fileBuffer,
+			});
+
+			const response = await client.send(uploadCommand);
+			console.log('Response ', response);
+			return res.json({ message: 'Image upload success' });
+		}
+	});
+}

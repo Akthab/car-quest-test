@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
+exports.newAddPost = exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
 const User_model_1 = __importDefault(require("./../models/User.model"));
 const Post_model_js_1 = __importDefault(require("../models/Post.model.js"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
@@ -183,3 +183,24 @@ async function addPost(req, res) {
     }
 }
 exports.addPost = addPost;
+async function newAddPost(req, res) {
+    const uploadMiddleware = upload.single('image');
+    uploadMiddleware(req, res, async (err) => {
+        // let postImageUrl = null;
+        if (req.file) {
+            console.log('Has a file');
+            const file = req.file;
+            const fileBuffer = Buffer.from(file.buffer);
+            const client = new client_s3_1.S3Client({ region: process.env.AWS_REGION });
+            const uploadCommand = new client_s3_1.PutObjectCommand({
+                Bucket: process.env.AWS_S3_BUCKET,
+                Key: (0, uuid_1.v4)(),
+                Body: fileBuffer,
+            });
+            const response = await client.send(uploadCommand);
+            console.log('Response ', response);
+            return res.json({ message: 'Image upload success' });
+        }
+    });
+}
+exports.newAddPost = newAddPost;
