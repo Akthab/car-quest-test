@@ -212,35 +212,6 @@ async function uploadImage(imageFile) {
 */
 
 export async function addPost(req, res) {
-	try {
-		const uploadMiddleware = upload.single('image');
-
-		await uploadMiddleware(req, res, async (err) => {
-			let postImageUrl = null;
-			console.log(req.file);
-
-			if (req.file) {
-				console.log('Has a file');
-				postImageUrl = await uploadImage(req.file);
-			}
-
-			const post = await PostModel.create({
-				postTitle: req.body.postTitle,
-				postDescription: req.body.postDescription,
-				postCarMake: req.body.postCarMake,
-				postCarYear: req.body.postCarYear,
-				postCarType: req.body.postCarType,
-				postCarFuelType: req.body.postCarFuelType,
-				postImageUrl: postImageUrl,
-			});
-		});
-		res.json({ message: 'Post creation successful' });
-	} catch (error) {
-		res.status(500).json({ error: 'Internal server error' });
-	}
-}
-
-export async function brandNewAddPost(req, res) {
 	let postImageUrl = null;
 
 	try {

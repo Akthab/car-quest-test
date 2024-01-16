@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.brandNewAddPost = exports.newAddPost = exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
+exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
 const User_model_1 = __importDefault(require("./../models/User.model"));
 const Post_model_js_1 = __importDefault(require("../models/Post.model.js"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
@@ -157,128 +157,8 @@ async function uploadImage(imageFile) {
 }
 */
 async function addPost(req, res) {
-    try {
-        const uploadMiddleware = upload.single('image');
-        await uploadMiddleware(req, res, async (err) => {
-            let postImageUrl = null;
-            console.log(req.file);
-            if (req.file) {
-                console.log('Has a file');
-                postImageUrl = await uploadImage(req.file);
-            }
-            const post = await Post_model_js_1.default.create({
-                postTitle: req.body.postTitle,
-                postDescription: req.body.postDescription,
-                postCarMake: req.body.postCarMake,
-                postCarYear: req.body.postCarYear,
-                postCarType: req.body.postCarType,
-                postCarFuelType: req.body.postCarFuelType,
-                postImageUrl: postImageUrl,
-            });
-        });
-        res.json({ message: 'Post creation successful' });
-    }
-    catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
-    }
-}
-exports.addPost = addPost;
-async function newAddPost(req, res) {
-    const uploadMiddleware = upload.single('image');
-    uploadMiddleware(req, res, async (err) => {
-        if (req.file) {
-            console.log('Has a file');
-            const file = req.file;
-            const fileBuffer = Buffer.from(file.buffer);
-            const client = new client_s3_1.S3Client({ region: process.env.AWS_REGION });
-            const uploadCommand = new client_s3_1.PutObjectCommand({
-                Bucket: process.env.AWS_S3_BUCKET,
-                Key: (0, uuid_1.v4)(),
-                Body: fileBuffer,
-            });
-            const response = await client.send(uploadCommand);
-            console.log('Response ', response);
-            return res.json({ message: 'Image upload success' });
-        }
-    });
-}
-exports.newAddPost = newAddPost;
-// export async function brandNewAddPost(req, res) {
-// 	try {
-// 		const uploadMiddleware = upload.single('image');
-// 		await uploadMiddleware(req, res, async (err) => {
-// 			let postImageUrl = null;
-// 			console.log(req.file);
-// 			if (req.file) {
-// 				console.log('Has a file');
-// 				const file = req.file;
-// 				const fileBuffer = Buffer.from(file.buffer);
-// 				const client = new S3Client({ region: process.env.AWS_REGION });
-// 				const imageKey = uuidv4();
-// 				const uploadCommand = new PutObjectCommand({
-// 					Bucket: process.env.AWS_S3_BUCKET,
-// 					Key: imageKey,
-// 					Body: fileBuffer,
-// 				});
-// 				await client.send(uploadCommand);
-// 				postImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
-// 			}
-// 			const post = await PostModel.create({
-// 				postTitle: req.body.postTitle,
-// 				postDescription: req.body.postDescription,
-// 				postCarMake: req.body.postCarMake,
-// 				postCarYear: req.body.postCarYear,
-// 				postCarType: req.body.postCarType,
-// 				postCarFuelType: req.body.postCarFuelType,
-// 				postImageUrl: postImageUrl,
-// 			});
-// 		});
-// 		res.json({ message: 'Post creation successful' });
-// 	} catch (error) {
-// 		res.status(500).json({ error: 'Internal server error' });
-// 	}
-// }
-// export async function brandNewAddPost(req, res) {
-// 	let postImageUrl = null; // Declare here
-// 	try {
-// 		console.log('In the brandNewPost');
-// 		const uploadMiddleware = upload.single('image');
-// 		await uploadMiddleware(req, res, async (err) => {
-// 			if (req.file) {
-// 				console.log('Has a file');
-// 				const file = req.file;
-// 				const fileBuffer = Buffer.from(file.buffer);
-// 				const client = new S3Client({ region: process.env.AWS_REGION });
-// 				const imageKey = uuidv4();
-// 				const uploadCommand = new PutObjectCommand({
-// 					Bucket: process.env.AWS_S3_BUCKET,
-// 					Key: imageKey,
-// 					Body: fileBuffer,
-// 				});
-// 				const hello = await client.send(uploadCommand); // Await upload completion
-// 				console.log('Image place ', hello);
-// 				postImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
-// 			}
-// 		});
-// 		const post = await PostModel.create({
-// 			postTitle: req.body.postTitle,
-// 			postDescription: req.body.postDescription,
-// 			postCarMake: req.body.postCarMake,
-// 			postCarYear: req.body.postCarYear,
-// 			postCarType: req.body.postCarType,
-// 			postCarFuelType: req.body.postCarFuelType,
-// 			postImageUrl: postImageUrl,
-// 		});
-// 		res.json({ message: 'Post creation successful' });
-// 	} catch (error) {
-// 		res.status(500).json({ error: 'Internal server error' });
-// 	}
-// }
-async function brandNewAddPost(req, res) {
     let postImageUrl = null;
     try {
-        console.log('In the brandNewPost');
-        // 1. Error handling in middleware
         await new Promise((resolve, reject) => {
             upload.single('image')(req, res, (err) => {
                 if (err) {
@@ -291,10 +171,8 @@ async function brandNewAddPost(req, res) {
             });
         });
         if (req.file) {
-            console.log('Has a file');
             const file = req.file;
             const fileBuffer = Buffer.from(file.buffer);
-            // 2. AWS S3 client initialization
             const client = new client_s3_1.S3Client({ region: process.env.AWS_REGION });
             const imageKey = (0, uuid_1.v4)();
             const uploadCommand = new client_s3_1.PutObjectCommand({
@@ -302,12 +180,9 @@ async function brandNewAddPost(req, res) {
                 Key: imageKey,
                 Body: fileBuffer,
             });
-            // 3. Properly configure AWS SDK
             await client.send(uploadCommand);
-            console.log('Image place ', imageKey);
             postImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
         }
-        // 4. Database error handling
         const post = await Post_model_js_1.default.create({
             postTitle: req.body.postTitle,
             postDescription: req.body.postDescription,
@@ -320,8 +195,7 @@ async function brandNewAddPost(req, res) {
         res.json({ message: 'Post creation successful' });
     }
     catch (error) {
-        // 5. Respond with appropriate error message
         res.status(500).json({ error: 'Internal server error' });
     }
 }
-exports.brandNewAddPost = brandNewAddPost;
+exports.addPost = addPost;

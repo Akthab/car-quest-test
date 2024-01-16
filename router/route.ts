@@ -12,6 +12,5 @@ router
 	.route('/getUserDetailsByHeader')
 	.get(requireAuth, controller.getUserDetailsByHeader); // get user details by header
 router.route('/addPost').post(requireAuth, controller.addPost); // add post
-router.route('/brandNewAddPost').post(controller.brandNewAddPost);
 
 export default router;
