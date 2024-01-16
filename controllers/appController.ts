@@ -240,36 +240,10 @@ export async function addPost(req, res) {
 	}
 }
 
-export async function newAddPost(req, res) {
-	const uploadMiddleware = upload.single('image');
-
-	uploadMiddleware(req, res, async (err) => {
-		if (req.file) {
-			console.log('Has a file');
-			const file = req.file;
-			const fileBuffer = Buffer.from(file.buffer);
-
-			const client = new S3Client({ region: process.env.AWS_REGION });
-			const uploadCommand = new PutObjectCommand({
-				Bucket: process.env.AWS_S3_BUCKET,
-				Key: uuidv4(),
-				Body: fileBuffer,
-			});
-
-			const response = await client.send(uploadCommand);
-			console.log('Response ', response);
-			return res.json({ message: 'Image upload success' });
-		}
-	});
-}
-
 export async function brandNewAddPost(req, res) {
 	let postImageUrl = null;
 
 	try {
-		console.log('In the brandNewPost');
-
-		// 1. Error handling in middleware
 		await new Promise<void>((resolve, reject) => {
 			upload.single('image')(req, res, (err) => {
 				if (err) {
@@ -282,12 +256,9 @@ export async function brandNewAddPost(req, res) {
 		});
 
 		if (req.file) {
-			console.log('Has a file');
-
 			const file = req.file;
 			const fileBuffer = Buffer.from(file.buffer);
 
-			// 2. AWS S3 client initialization
 			const client = new S3Client({ region: process.env.AWS_REGION });
 
 			const imageKey = uuidv4();
@@ -297,15 +268,11 @@ export async function brandNewAddPost(req, res) {
 				Body: fileBuffer,
 			});
 
-			// 3. Properly configure AWS SDK
 			await client.send(uploadCommand);
-
-			console.log('Image place ', imageKey);
 
 			postImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
 		}
 
-		// 4. Database error handling
 		const post = await PostModel.create({
 			postTitle: req.body.postTitle,
 			postDescription: req.body.postDescription,
@@ -318,7 +285,6 @@ export async function brandNewAddPost(req, res) {
 
 		res.json({ message: 'Post creation successful' });
 	} catch (error) {
-		// 5. Respond with appropriate error message
 		res.status(500).json({ error: 'Internal server error' });
 	}
 }
