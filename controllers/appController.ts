@@ -196,7 +196,7 @@ async function uploadImage(imageFile) {
 
 		return imageUrl;
 	} catch (error) {
-		console.log(error);
+		throw error;
 	}
 }
 
@@ -244,8 +244,6 @@ export async function newAddPost(req, res) {
 	const uploadMiddleware = upload.single('image');
 
 	uploadMiddleware(req, res, async (err) => {
-		// let postImageUrl = null;
-
 		if (req.file) {
 			console.log('Has a file');
 			const file = req.file;
@@ -263,4 +261,46 @@ export async function newAddPost(req, res) {
 			return res.json({ message: 'Image upload success' });
 		}
 	});
+}
+
+export async function brandNewAddPost(req, res) {
+	try {
+		const uploadMiddleware = upload.single('image');
+
+		await uploadMiddleware(req, res, async (err) => {
+			let postImageUrl = null;
+			console.log(req.file);
+
+			if (req.file) {
+				console.log('Has a file');
+				const file = req.file;
+				const fileBuffer = Buffer.from(file.buffer);
+
+				const client = new S3Client({ region: process.env.AWS_REGION });
+				const imageKey = uuidv4();
+				const uploadCommand = new PutObjectCommand({
+					Bucket: process.env.AWS_S3_BUCKET,
+					Key: imageKey,
+					Body: fileBuffer,
+				});
+
+				await client.send(uploadCommand);
+
+				postImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
+			}
+
+			const post = await PostModel.create({
+				postTitle: req.body.postTitle,
+				postDescription: req.body.postDescription,
+				postCarMake: req.body.postCarMake,
+				postCarYear: req.body.postCarYear,
+				postCarType: req.body.postCarType,
+				postCarFuelType: req.body.postCarFuelType,
+				postImageUrl: postImageUrl,
+			});
+		});
+		res.json({ message: 'Post creation successful' });
+	} catch (error) {
+		res.status(500).json({ error: 'Internal server error' });
+	}
 }

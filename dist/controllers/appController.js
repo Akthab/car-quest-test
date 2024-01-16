@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.newAddPost = exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
+exports.brandNewAddPost = exports.newAddPost = exports.addPost = exports.getUserDetailsByHeader = exports.login = exports.register = void 0;
 const User_model_1 = __importDefault(require("./../models/User.model"));
 const Post_model_js_1 = __importDefault(require("../models/Post.model.js"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
@@ -143,7 +143,7 @@ async function uploadImage(imageFile) {
         return imageUrl;
     }
     catch (error) {
-        console.log(error);
+        throw error;
     }
 }
 /** POST: http://localhost:8080/api/addPost
@@ -186,7 +186,6 @@ exports.addPost = addPost;
 async function newAddPost(req, res) {
     const uploadMiddleware = upload.single('image');
     uploadMiddleware(req, res, async (err) => {
-        // let postImageUrl = null;
         if (req.file) {
             console.log('Has a file');
             const file = req.file;
@@ -204,3 +203,40 @@ async function newAddPost(req, res) {
     });
 }
 exports.newAddPost = newAddPost;
+async function brandNewAddPost(req, res) {
+    try {
+        const uploadMiddleware = upload.single('image');
+        await uploadMiddleware(req, res, async (err) => {
+            let postImageUrl = null;
+            console.log(req.file);
+            if (req.file) {
+                console.log('Has a file');
+                const file = req.file;
+                const fileBuffer = Buffer.from(file.buffer);
+                const client = new client_s3_1.S3Client({ region: process.env.AWS_REGION });
+                const imageKey = (0, uuid_1.v4)();
+                const uploadCommand = new client_s3_1.PutObjectCommand({
+                    Bucket: process.env.AWS_S3_BUCKET,
+                    Key: imageKey,
+                    Body: fileBuffer,
+                });
+                await client.send(uploadCommand);
+                postImageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
+            }
+            const post = await Post_model_js_1.default.create({
+                postTitle: req.body.postTitle,
+                postDescription: req.body.postDescription,
+                postCarMake: req.body.postCarMake,
+                postCarYear: req.body.postCarYear,
+                postCarType: req.body.postCarType,
+                postCarFuelType: req.body.postCarFuelType,
+                postImageUrl: postImageUrl,
+            });
+        });
+        res.json({ message: 'Post creation successful' });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+exports.brandNewAddPost = brandNewAddPost;
